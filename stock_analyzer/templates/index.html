@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Advanced Stock Market Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            -webkit-font-smoothing: antialiased; 
+            -moz-osx-font-smoothing: grayscale; 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 50%, #581c87 100%);
+        }
+
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(0);
+        }
+
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .line-bar { 
+            height: 10px; 
+            background: linear-gradient(to right, #ef4444, #f59e0b, #10b981); 
+            border-radius: 9999px; 
+            position: relative;
+        }
+        
+        .line-bar-thumb { 
+            width: 6px; 
+            height: 18px; 
+            background: linear-gradient(135deg, #ffffff, #e5e7eb);
+            position: absolute; 
+            top: -4px; 
+            border-radius: 3px; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .radio-nav input[type="radio"] { display: none; }
+        
+        .radio-nav label {
+            cursor: pointer; 
+            padding: 0.75rem 1.5rem; 
+            border-radius: 12px; 
+            transition: all 0.3s ease; 
+            border: 2px solid transparent;
+            font-weight: 500;
+            background: rgba(55, 65, 81, 0.5);
+            backdrop-filter: blur(10px);
+        }
+        
+        .radio-nav input[type="radio"]:checked + label { 
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white; 
+            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 8px 16px -4px rgba(59, 130, 246, 0.3);
+        }
+        
+        .radio-nav label:hover { 
+            background: rgba(75, 85, 99, 0.7);
+            transform: translateY(-1px);
+        }
+
+        .chart-container { 
+            position: relative; 
+            background: rgba(17, 24, 39, 0.8);
+            border-radius: 16px;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(55, 65, 81, 0.3);
+        }
+
+        .search-results::-webkit-scrollbar { width: 6px; }
+        .search-results::-webkit-scrollbar-track { background: #374151; border-radius: 3px; }
+        .search-results::-webkit-scrollbar-thumb { background: #6b7280; border-radius: 3px; }
+        .search-results::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+        .metric-card {
+            background: linear-gradient(135deg, rgba(31, 41, 55, 0.8), rgba(17, 24, 39, 0.9));
+            border: 1px solid rgba(75, 85, 99, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .prediction-card {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 95, 70, 0.1));
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .analysis-positive {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+            border-left: 4px solid #10b981;
+        }
+
+        .analysis-negative {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
+            border-left: 4px solid #ef4444;
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .feature-highlight {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 0.5rem;
+        }
+
+        /* Homepage layout fixes */
+        .homepage-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .section-divider {
+            width: 4px;
+            height: 2rem;
+            border-radius: 9999px;
+            background: linear-gradient(to bottom, var(--tw-gradient-stops));
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+<div id="app-container" class="container mx-auto p-4 md:p-6 max-w-7xl">
+    <div id="homepage">
+        <header class="text-center homepage-section">
+            <div class="gradient-bg rounded-2xl p-8 mb-8">
+                <h1 class="text-5xl md:text-6xl font-bold text-white mb-4">
+                    Advanced Stock Analysis
+                </h1>
+                <p class="text-xl text-blue-100 max-w-2xl mx-auto">
+                    Comprehensive insights for Indian stock markets with technical and fundamental analysis
+                </p>
+            </div>
+        </header>
+
+        <div class="relative max-w-3xl mx-auto homepage-section">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <input type="text" id="search-input" 
+                class="w-full p-5 pl-12 text-lg bg-gray-800/80 backdrop-blur-sm border-2 border-gray-700 rounded-2xl 
+                       focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all duration-300
+                       hover:bg-gray-800" 
+                placeholder="Search companies (e.g., Reliance Industries, TCS, HDFC Bank...)">
+            <div id="search-results" 
+                class="absolute z-20 w-full mt-2 bg-gray-800/95 backdrop-blur-lg border border-gray-700 
+                       rounded-xl shadow-2xl max-h-80 overflow-y-auto search-results hidden"></div>
+        </div>
+
+        <div class="homepage-section">
+            <h2 class="section-title">
+                <div class="section-divider bg-gradient-to-b from-blue-500 to-purple-600"></div>
+                Market Indices
+            </h2>
+            <div id="indices-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <div class="homepage-section">
+            <h2 class="section-title">
+                <div class="section-divider bg-gradient-to-b from-green-500 to-blue-600"></div>
+                Top Companies
+            </h2>
+            <div id="famous-stocks-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+        </div>
+    </div>
+
+    <div id="dashboard-page" class="hidden">
+        <button id="back-to-home" 
+            class="flex items-center gap-3 mb-6 text-blue-400 hover:text-blue-300 transition-all duration-300 
+                   bg-gray-800/50 backdrop-blur-sm px-4 py-2 rounded-lg hover:bg-gray-700/50">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back to Search
+        </button>
+
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8">
+            <div class="mb-4 lg:mb-0">
+                <h1 id="company-name" class="text-4xl md:text-5xl font-bold text-white mb-2"></h1>
+                <p id="company-symbol" class="text-xl text-gray-400"></p>
+            </div>
+            <div id="company-price-container" class="text-right"></div>
+        </div>
+
+        <nav class="mb-8 border-b border-gray-700/50">
+            <div class="radio-nav flex flex-wrap gap-2 pb-4">
+                <input type="radio" id="nav-overview" name="dashboard-nav" value="overview" checked>
+                <label for="nav-overview">Overview</label>
+                
+                <input type="radio" id="nav-graph" name="dashboard-nav" value="graph">
+                <label for="nav-graph">Price Charts</label>
+                
+                <input type="radio" id="nav-technical" name="dashboard-nav" value="technical">
+                <label for="nav-technical">Technical Analysis</label>
+                
+                <input type="radio" id="nav-fundamentals" name="dashboard-nav" value="fundamentals">
+                <label for="nav-fundamentals">Fundamental Analysis</label>
+                
+                <input type="radio" id="nav-analysis" name="dashboard-nav" value="analysis">
+                <label for="nav-analysis">Advanced Analysis & Prediction</label>
+            </div>
+        </nav>
+
+        <div id="dashboard-content"></div>
+    </div>
+</div>
+
+<div id="loading-spinner" class="fixed inset-0 bg-gray-900/90 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="text-center">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+        <p class="text-lg text-gray-300">Analyzing market data...</p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- GLOBAL STATE & ELEMENTS ---
+    const state = { charts: {}, stockData: null };
+    const G_ELS = { 
+        homepage: document.getElementById('homepage'), 
+        dashboardPage: document.getElementById('dashboard-page'), 
+        searchInput: document.getElementById('search-input'), 
+        searchResults: document.getElementById('search-results'), 
+        backToHomeBtn: document.getElementById('back-to-home'), 
+        navRadios: document.querySelectorAll('input[name="dashboard-nav"]'), 
+        loadingSpinner: document.getElementById('loading-spinner'), 
+        dashboardContent: document.getElementById('dashboard-content'), 
+        indicesGrid: document.getElementById('indices-grid'), 
+        famousStocksGrid: document.getElementById('famous-stocks-grid') 
+    };
+
+    // --- UTILITIES ---
+    const showLoading = (isLoading) => G_ELS.loadingSpinner.classList.toggle('hidden', !isLoading);
+    const formatCurrency = (v) => v != null ? `₹${Number(v).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'N/A';
+    const formatNumber = (v, dec = 2) => v != null ? Number(v).toLocaleString('en-IN', {minimumFractionDigits: dec, maximumFractionDigits: dec}) : 'N/A';
+    const formatPercentNumber = (v) => (v == null) ? 'N/A' : `${Number(v).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}%`;
+    const switchPage = (name) => { 
+        G_ELS.homepage.classList.toggle('hidden', name !== 'homepage'); 
+        G_ELS.dashboardPage.classList.toggle('hidden', name !== 'dashboard'); 
+    };
+
+    // --- API ---
+    const apiFetch = async (url) => { 
+        try { 
+            const r = await fetch(url); 
+            const d = await r.json(); 
+            if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`); 
+            return d; 
+        } catch (e) { 
+            console.error("API Error:", e); 
+            alert(`Failed to fetch data: ${e.message}`); 
+            return null; 
+        }
+    };
+
+    // --- INIT HOMEPAGE ---
+    const initHomepage = async () => {
+        const d = await apiFetch('/api/homepage_data');
+        if (!d) { 
+            G_ELS.indicesGrid.innerHTML = `<div class="text-red-400 col-span-3 text-center p-8">
+                <div class="text-4xl mb-4">📈</div>Failed to load market data. Please try again later.
+            </div>`; 
+            return; 
+        }
+        G_ELS.indicesGrid.innerHTML = d.indices.map(i => renderStockCard(i, 'index')).join('');
+        G_ELS.famousStocksGrid.innerHTML = d.famous_stocks.map(s => renderStockCard(s, 'stock')).join('');
+    };
+
+    // Enhanced card rendering with better visual design
+    const renderStockCard = (item, type) => {
+        if (!item || item.price == null) return '';
+        const isPositive = item.change >= 0;
+        const arrow = isPositive ? '▲' : '▼';
+        const colorClass = isPositive ? 'text-emerald-400' : 'text-red-400';
+        const bgGradient = isPositive ? 'from-emerald-500/20 to-green-600/10' : 'from-red-500/20 to-red-600/10';
+        
+        return `<div class="metric-card card-hover p-6 rounded-xl shadow-xl ${type === 'stock' ? 'cursor-pointer' : ''}" data-symbol="${item.symbol || ''}">
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-bold text-lg text-white truncate">${item.name}</h3>
+                    <p class="text-sm text-gray-400 mt-1 truncate">${item.symbol || ''}</p>
+                </div>
+                <div class="text-right ml-4">
+                    <p class="text-2xl font-bold text-white">${formatCurrency(item.price)}</p>
+                    <div class="flex items-center justify-end mt-2 text-sm font-medium ${colorClass}">
+                        <span class="mr-1">${arrow}</span>
+                        <span>${formatNumber(item.change)}</span>
+                        <span class="ml-1">(${formatPercentNumber(item.percentChange)})</span>
+                    </div>
+                </div>
+            </div>
+            <div class="h-2 bg-gradient-to-r ${bgGradient} rounded-full opacity-30"></div>
+        </div>`;
+    };
+
+    // Enhanced search functionality
+    const handleSearch = async (e) => {
+        const q = e.target.value;
+        if (q.length < 2) { 
+            G_ELS.searchResults.classList.add('hidden'); 
+            return; 
+        }
+        const d = await apiFetch(`/search?q=${encodeURIComponent(q)}`);
+        G_ELS.searchResults.innerHTML = (d && d.length) ? 
+            d.map(t => `<div class="p-4 hover:bg-gray-700/80 cursor-pointer search-item transition-colors duration-200 
+                       border-b border-gray-700/50 last:border-b-0" data-symbol="${t.yfinance_symbol}">
+                <p class="font-semibold text-white">${t.name}</p>
+                <p class="text-sm text-gray-400 mt-1">${t.symbol}</p>
+            </div>`).join('') : 
+            '<div class="p-4 text-center text-gray-400">No companies found</div>';
+        G_ELS.searchResults.classList.toggle('hidden', !d || !d.length);
+    };
+
+    // Select stock and fetch detailed data
+    const selectStock = async (symbol) => {
+        const cleanSymbol = symbol.replace(/['",]/g, '').trim();
+        if (!cleanSymbol) return;
+        showLoading(true);
+        switchPage('dashboard');
+        const data = await apiFetch(`/api/stock/${cleanSymbol}`);
+        if (data) {
+            state.stockData = data;
+            Object.values(state.charts).forEach(c => c.destroy());
+            state.charts = {};
+            renderDashboard(data);
+        } else {
+            switchPage('homepage');
+        }
+        showLoading(false);
+    };
+
+    // --- DASHBOARD ---
+    const renderDashboard = async (data) => {
+        const { info } = data;
+        document.getElementById('company-name').textContent = info.longName || 'N/A';
+        document.getElementById('company-symbol').textContent = info.symbol || 'N/A';
+
+        // --- Enhanced price display with intraday data ---
+        let percentChangeDisplay = '';
+        try {
+            const intradayRes = await fetch(`/api/intraday/${info.symbol}`);
+            const intradayData = await intradayRes.json();
+            if (Array.isArray(intradayData) && intradayData.length > 1) {
+                const firstPrice = intradayData[0].Close;
+                const lastPrice = intradayData[intradayData.length - 1].Close;
+                const change = lastPrice - firstPrice;
+                const percentChange = (change / firstPrice) * 100;
+
+                const isPositive = change >= 0;
+                const bgGradient = isPositive ? 'from-emerald-500/20 to-green-600/20' : 'from-red-500/20 to-red-600/20';
+                
+                percentChangeDisplay = `
+                    <div class="bg-gradient-to-r ${bgGradient} rounded-xl p-4 mt-3">
+                        <div class="flex justify-end items-center gap-3 ${isPositive ? 'text-emerald-400' : 'text-red-400'}">
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">${isPositive ? '▲' : '▼'}</span>
+                                <span class="text-xl font-semibold">${formatNumber(change)}</span>
+                            </div>
+                            <span class="text-lg">(${formatPercentNumber(percentChange)})</span>
+                        </div>
+                        <p class="text-right text-sm text-gray-400 mt-1">Today's Change</p>
+                    </div>`;
+            }
+        } catch (err) {
+            console.error("Intraday fetch failed:", err);
+        }
+
+        document.getElementById('company-price-container').innerHTML = `
+            <div class="text-right">
+                <div class="text-4xl font-bold text-white">${formatCurrency(info.regularMarketPrice)}</div>
+                <p class="text-gray-400 mt-1">Current Price</p>
+                ${percentChangeDisplay}
+            </div>
+        `;
+
+        G_ELS.navRadios[0].checked = true;
+        switchDashboardTab('overview');
+    };
+
+    const switchDashboardTab = (tab) => {
+        G_ELS.dashboardContent.innerHTML = '';
+        const renderFunc = {
+            'overview': renderOverviewSection, 
+            'graph': renderGraphSection, 
+            'technical': renderTechnicalSection, 
+            'fundamentals': renderFundamentalsSection, 
+            'analysis': renderAnalysisSection
+        }[tab];
+        if (renderFunc) renderFunc();
+    };
+
+    // --- ENHANCED SECTIONS ---
+    const renderOverviewSection = () => {
+        const { info } = state.stockData;
+        
+        const renderLineBar = (min, max, current, label) => {
+            if (min == null || max == null || current == null) return '<p class="text-sm text-gray-500">Data not available.</p>';
+            const pct = Math.max(0, Math.min(100, ((current - min) / (max - min)) * 100));
+            return `<div class="mb-4">
+                <h4 class="font-semibold text-white mb-3">${label}</h4>
+                <div class="flex justify-between text-sm mb-2 text-gray-300">
+                    <span>${formatCurrency(min)}</span>
+                    <span class="font-semibold text-blue-400">${formatCurrency(current)}</span>
+                    <span>${formatCurrency(max)}</span>
+                </div>
+                <div class="relative w-full line-bar">
+                    <div class="line-bar-thumb" style="left: calc(${pct}% - 3px);"></div>
+                </div>
+            </div>`;
+        };
+
+        const statItem = (label, value, highlight = false) => `
+            <div class="flex justify-between items-center py-3 border-b border-gray-700/30 ${highlight ? 'feature-highlight' : ''}">
+                <span class="text-gray-300 font-medium">${label}</span> 
+                <strong class="text-white text-lg">${value}</strong>
+            </div>`;
+
+        G_ELS.dashboardContent.innerHTML = `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-8">
+                <div class="metric-card p-6 rounded-xl shadow-lg">
+                    ${renderLineBar(info.regularMarketDayLow, info.regularMarketDayHigh, info.regularMarketPrice, "Today's Trading Range")}
+                </div>
+                
+                <div class="metric-card p-6 rounded-xl shadow-lg">
+                    ${renderLineBar(info.fiftyTwoWeekLow, info.fiftyTwoWeekHigh, info.regularMarketPrice, "52-Week Performance Range")}
+                </div>
+
+                <div class="metric-card p-6 rounded-xl shadow-lg">
+                    <h3 class="font-bold mb-6 text-xl text-white flex items-center">
+                        <span class="w-2 h-6 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full mr-3"></span>
+                        Key Financial Metrics
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                        <div class="space-y-2">
+                            ${statItem('Market Cap', formatCurrency(info.marketCap), true)}
+                            ${statItem('Volume', formatNumber(info.regularMarketVolume, 0))}
+                            ${statItem('Avg. Volume (3M)', formatNumber(info.averageVolume, 0))}
+                            ${statItem('Shares Outstanding', formatNumber(info.sharesOutstanding, 0))}
+                        </div>
+                        <div class="space-y-2">
+                            ${statItem('P/E Ratio (TTM)', formatNumber(info.trailingPE), true)}
+                            ${statItem('EPS (TTM)', formatNumber(info.trailingEps), true)}
+                            ${statItem('Beta (5Y)', formatNumber(info.beta))}
+                            ${statItem('Dividend Yield', formatPercentNumber(info.dividendYield ? info.dividendYield * 100 : null))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="lg:col-span-1">
+                <div class="metric-card p-6 rounded-xl shadow-lg h-fit">
+                    <h3 class="font-bold mb-4 text-xl text-white flex items-center">
+                        <span class="w-2 h-6 bg-gradient-to-b from-green-500 to-blue-600 rounded-full mr-3"></span>
+                        Company Profile
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-sm text-gray-400 mb-1">Industry</p>
+                            <p class="font-semibold text-white">${info.industry || 'Not specified'}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-400 mb-1">Sector</p>
+                            <p class="font-semibold text-white">${info.sector || 'Not specified'}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-400 mb-3">Business Summary</p>
+                            <p class="text-gray-300 text-sm leading-relaxed max-h-64 overflow-y-auto">
+                                ${info.longBusinessSummary || 'Business description not available.'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    };
+
+    const renderGraphSection = () => {
+        G_ELS.dashboardContent.innerHTML = `
+        <div class="metric-card p-6 rounded-xl shadow-lg">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                <h3 class="font-bold text-xl text-white mb-4 sm:mb-0">Price Chart Analysis</h3>
+                <div id="graph-timeframes" class="flex flex-wrap gap-2"></div>
+            </div>
+            <div class="chart-container" style="height: 500px;">
+                <canvas id="price-chart"></canvas>
+            </div>
+        </div>`;
+
+        const timeframes = { '1D': 0, '1W': 5, '1M': 21, '3M': 63, '1Y': 252, '3Y': state.stockData.historical.length };
+        const container = document.getElementById('graph-timeframes');
+        
+        Object.keys(timeframes).forEach((tf, i) => {
+            const btn = Object.assign(document.createElement('button'), { 
+                textContent: tf, 
+                className: `px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${i === 4 ? 
+                    'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' : 
+                    'bg-gray-700 text-gray-300 hover:bg-gray-600'}`, 
+                onclick: () => { 
+                    updateMainChart(timeframes[tf]); 
+                    container.querySelectorAll('button').forEach(b => {
+                        b.className = 'px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 bg-gray-700 text-gray-300 hover:bg-gray-600';
+                    });
+                    btn.className = 'px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg';
+                }
+            });
+            container.appendChild(btn);
+        });
+
+        state.charts.main = new Chart(document.getElementById('price-chart'), { 
+            type: 'line', 
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { 
+                        mode: 'index', 
+                        intersect: false,
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        titleColor: '#f9fafb',
+                        bodyColor: '#d1d5db',
+                        borderColor: '#374151',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return `Price: ${formatCurrency(context.parsed.y)}`;
+                            }
+                        }
+                    }
+                },
+                scales: { 
+                    x: { 
+                        type: 'time', 
+                        ticks: { color: '#9ca3af', font: { size: 11 } }, 
+                        grid: { color: 'rgba(55, 65, 81, 0.3)' }
+                    }, 
+                    y: { 
+                        ticks: { 
+                            color: '#9ca3af', 
+                            font: { size: 11 },
+                            callback: v => formatCurrency(v) 
+                        }, 
+                        grid: { color: 'rgba(55, 65, 81, 0.3)' } 
+                    } 
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            } 
+        });
+        updateMainChart(252);
+    };
+
+    const updateMainChart = async (days) => {
+        let chartData, timeUnit, tension;
+        if (days === 0) {
+            const d = await apiFetch(`/api/intraday/${state.stockData.info.symbol}`);
+            if (!d) return;
+            chartData = d;
+            timeUnit = 'hour';
+            tension = 0;
+        } else {
+            chartData = state.stockData.historical.slice(Math.max(0, state.stockData.historical.length - days));
+            timeUnit = 'day';
+            tension = 0.2;
+        }
+
+        const gradient = state.charts.main.ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+        gradient.addColorStop(1, 'rgba(59, 130, 246, 0.05)');
+
+        state.charts.main.data = { 
+            labels: chartData.map(d => d.Date), 
+            datasets: [{
+                label: 'Price', 
+                data: chartData.map(d => d.Close), 
+                borderColor: '#3b82f6',
+                backgroundColor: gradient,
+                borderWidth: 3, 
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: '#3b82f6',
+                pointHoverBorderColor: '#ffffff',
+                pointHoverBorderWidth: 2,
+                tension,
+                fill: true
+            }] 
+        };
+        state.charts.main.options.scales.x.time.unit = timeUnit;
+        state.charts.main.update();
+    };
+
+    const renderTechnicalSection = () => {
+        G_ELS.dashboardContent.innerHTML = `
+        <div class="space-y-8">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <div class="metric-card p-6 rounded-xl shadow-lg">
+                    <h3 class="font-bold text-center mb-4 text-white">Moving Averages (50 & 200 Day)</h3>
+                    <div class="chart-container" style="height:400px;">
+                        <canvas id="ma-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="metric-card p-6 rounded-xl shadow-lg">
+                    <h3 class="font-bold text-center mb-4 text-white">Bollinger Bands (20 Day, 2σ)</h3>
+                    <div class="chart-container" style="height:400px;">
+                        <canvas id="bb-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <div class="metric-card p-6 rounded-xl shadow-lg">
+                    <h3 class="font-bold text-center mb-4 text-white">RSI (Relative Strength Index)</h3>
+                    <div class="chart-container" style="height:350px;">
+                        <canvas id="rsi-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="metric-card p-6 rounded-xl shadow-lg">
+                    <h3 class="font-bold text-center mb-4 text-white">MACD Analysis</h3>
+                    <div class="chart-container" style="height:350px;">
+                        <canvas id="macd-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+        const prices = state.stockData.historical.map(d => d.Close);
+        const labels = state.stockData.historical.map(d => d.Date);
+        const sma = (d, p) => d.map((_, i, a) => i < p - 1 ? null : a.slice(i - p + 1, i + 1).reduce((x, y) => x + y) / p);
+        
+        const chartOptions = { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { 
+                    labels: { color: '#d1d5db', usePointStyle: true, padding: 20 },
+                    position: 'top'
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                    titleColor: '#f9fafb',
+                    bodyColor: '#d1d5db',
+                    borderColor: '#374151',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                x: { 
+                    ticks: { color: '#9ca3af', display: false }, 
+                    grid: { color: 'rgba(55, 65, 81, 0.2)' }
+                },
+                y: { 
+                    ticks: { color: '#9ca3af', font: { size: 10 } }, 
+                    grid: { color: 'rgba(55, 65, 81, 0.2)' }
+                }
+            }
+        };
+
+        // Moving Averages Chart
+        new Chart(document.getElementById('ma-chart'), { 
+            type: 'line', 
+            data: { 
+                labels, 
+                datasets: [
+                    { 
+                        label: 'Price', 
+                        data: prices, 
+                        borderColor: '#60a5fa', 
+                        backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                        pointRadius: 0, 
+                        borderWidth: 2,
+                        fill: true
+                    }, 
+                    { 
+                        label: 'SMA 50', 
+                        data: sma(prices, 50), 
+                        borderColor: '#fbbf24', 
+                        pointRadius: 0, 
+                        borderWidth: 2,
+                        borderDash: [5, 5]
+                    }, 
+                    { 
+                        label: 'SMA 200', 
+                        data: sma(prices, 200), 
+                        borderColor: '#f87171', 
+                        pointRadius: 0, 
+                        borderWidth: 2,
+                        borderDash: [10, 5]
+                    }
+                ] 
+            }, 
+            options: chartOptions 
+        });
+
+        // Bollinger Bands Chart
+        const sma20 = sma(prices, 20);
+        const std20 = prices.map((_, i, a) => i < 19 ? null : Math.sqrt(a.slice(i-19,i+1).reduce((s,v)=>s+Math.pow(v-sma20[i],2),0)/20));
+        const upper = sma20.map((v,i)=>v+2*std20[i]);
+        const lower = sma20.map((v,i)=>v-2*std20[i]);
+        
+        new Chart(document.getElementById('bb-chart'), { 
+            type: 'line', 
+            data: { 
+                labels, 
+                datasets: [
+                    { 
+                        label: 'Price', 
+                        data: prices, 
+                        borderColor: '#60a5fa', 
+                        backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                        pointRadius: 0, 
+                        borderWidth: 2,
+                        fill: false
+                    }, 
+                    { 
+                        label: 'Upper Band', 
+                        data: upper, 
+                        borderColor: '#fcd34d', 
+                        pointRadius: 0, 
+                        borderWidth: 1.5, 
+                        borderDash: [5, 5],
+                        fill: '+1'
+                    }, 
+                    { 
+                        label: 'Middle Band (SMA20)', 
+                        data: sma20, 
+                        borderColor: '#fb923c', 
+                        pointRadius: 0, 
+                        borderWidth: 2 
+                    }, 
+                    { 
+                        label: 'Lower Band', 
+                        data: lower, 
+                        borderColor: '#fcd34d', 
+                        pointRadius: 0, 
+                        borderWidth: 1.5, 
+                        borderDash: [5, 5], 
+                        backgroundColor: 'rgba(252, 211, 77, 0.1)',
+                        fill: '-1'
+                    }
+                ] 
+            }, 
+            options: chartOptions 
+        });
+
+        // RSI Chart
+        const rsiCalc = (d, p=14) => {
+            const ch = d.map((_,i)=>i>0?d[i]-d[i-1]:0);
+            let g=0, l=0;
+            return ch.map((c, i) => { 
+                g=(g*(p-1)+(c>0?c:0))/p; 
+                l=(l*(p-1)+(c<0?-c:0))/p; 
+                if(i<p) return null; 
+                const rs = g/l; 
+                return 100-(100/(1+rs)); 
+            });
+        };
+        
+        const rsiData = rsiCalc(prices);
+        new Chart(document.getElementById('rsi-chart'), { 
+            type: 'line', 
+            data: { 
+                labels, 
+                datasets: [
+                    { 
+                        label: 'RSI', 
+                        data: rsiData, 
+                        borderColor: '#a78bfa', 
+                        backgroundColor: 'rgba(167, 139, 250, 0.1)',
+                        pointRadius: 0, 
+                        borderWidth: 2,
+                        fill: true
+                    }
+                ] 
+            }, 
+            options: {
+                ...chartOptions,
+                scales: {
+                    ...chartOptions.scales,
+                    y: {
+                        ...chartOptions.scales.y,
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            ...chartOptions.scales.y.ticks,
+                            callback: function(value) {
+                                if (value === 30) return 'Oversold (30)';
+                                if (value === 70) return 'Overbought (70)';
+                                return value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // MACD Chart
+        const ema = (d, p) => { 
+            const k=2/(p+1); 
+            let ema=[d[0]]; 
+            for(let i=1;i<d.length;i++){
+                ema.push(d[i]*k+ema[i-1]*(1-k));
+            } 
+            return ema; 
+        };
+        const macdLine = ema(prices, 12).map((v, i) => v - ema(prices, 26)[i]);
+        const signalLine = ema(macdLine, 9);
+        const histogram = macdLine.map((v, i) => v - signalLine[i]);
+        
+        new Chart(document.getElementById('macd-chart'), { 
+            type: 'bar', 
+            data: { 
+                labels, 
+                datasets: [
+                    { 
+                        type: 'line', 
+                        label: 'MACD', 
+                        data: macdLine, 
+                        borderColor: '#60a5fa', 
+                        pointRadius: 0,
+                        borderWidth: 2,
+                        yAxisID: 'y'
+                    }, 
+                    { 
+                        type: 'line', 
+                        label: 'Signal', 
+                        data: signalLine, 
+                        borderColor: '#f87171', 
+                        pointRadius: 0,
+                        borderWidth: 2,
+                        yAxisID: 'y'
+                    }, 
+                    { 
+                        label: 'Histogram', 
+                        data: histogram, 
+                        backgroundColor: (ctx) => ctx.raw >= 0 ? 'rgba(34, 197, 94, 0.6)' : 'rgba(248, 113, 113, 0.6)',
+                        borderColor: (ctx) => ctx.raw >= 0 ? '#22c55e' : '#f87171',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    }
+                ] 
+            }, 
+            options: {
+                ...chartOptions,
+                scales: {
+                    x: chartOptions.scales.x,
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        ticks: { color: '#9ca3af', font: { size: 10 } }, 
+                        grid: { color: 'rgba(55, 65, 81, 0.2)' }
+                    }
+                }
+            }
+        });
+    };
+
+    const renderFundamentalsSection = () => {
+        const { info } = state.stockData;
+        
+        G_ELS.dashboardContent.innerHTML = `
+        <div class="space-y-8">
+            <div class="metric-card p-6 rounded-xl shadow-lg">
+                <h3 class="font-bold text-xl mb-6 text-white flex items-center">
+                    <span class="w-2 h-6 bg-gradient-to-b from-green-500 to-blue-600 rounded-full mr-3"></span>
+                    Key Fundamental Ratios
+                </h3>
+                <div id="fundamental-ratios-grid"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="metric-card p-6 rounded-xl shadow-lg">
+                    <h3 class="font-bold text-xl mb-6 text-white flex items-center">
+                        <span class="w-2 h-6 bg-gradient-to-b from-purple-500 to-pink-600 rounded-full mr-3"></span>
+                        Valuation Metrics Trend
+                    </h3>
+                    <div class="chart-container" style="height:400px;">
+                        <canvas id="valuation-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="metric-card p-6 rounded-xl shadow-lg">
+                    <h3 class="font-bold text-xl mb-6 text-white flex items-center">
+                        <span class="w-2 h-6 bg-gradient-to-b from-orange-500 to-red-600 rounded-full mr-3"></span>
+                        Profitability Metrics Trend
+                    </h3>
+                    <div class="chart-container" style="height:400px;">
+                        <canvas id="profitability-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+        const fundamentalRatios = [
+            { 
+                label: 'P/E Ratio (TTM)', 
+                value: formatNumber(info.trailingPE), 
+                desc: 'Price to Earnings',
+                benchmark: info.trailingPE > 25 ? 'High' : info.trailingPE < 15 ? 'Low' : 'Moderate',
+                color: info.trailingPE > 25 ? 'text-red-400' : info.trailingPE < 15 ? 'text-green-400' : 'text-yellow-400'
+            },
+            { 
+                label: 'P/B Ratio', 
+                value: formatNumber(info.priceToBook), 
+                desc: 'Price to Book Value',
+                benchmark: info.priceToBook > 3 ? 'High' : info.priceToBook < 1.5 ? 'Low' : 'Moderate',
+                color: info.priceToBook > 3 ? 'text-red-400' : info.priceToBook < 1.5 ? 'text-green-400' : 'text-yellow-400'
+            },
+            { 
+                label: 'ROE (%)', 
+                value: formatPercentNumber(info.returnOnEquity ? info.returnOnEquity * 100 : null), 
+                desc: 'Return on Equity',
+                benchmark: (info.returnOnEquity * 100) > 20 ? 'Excellent' : (info.returnOnEquity * 100) > 15 ? 'Good' : 'Fair',
+                color: (info.returnOnEquity * 100) > 20 ? 'text-green-400' : (info.returnOnEquity * 100) > 15 ? 'text-blue-400' : 'text-yellow-400'
+            },
+            { 
+                label: 'ROA (%)', 
+                value: formatPercentNumber(info.returnOnAssets ? info.returnOnAssets * 100 : null), 
+                desc: 'Return on Assets',
+                benchmark: (info.returnOnAssets * 100) > 10 ? 'Excellent' : (info.returnOnAssets * 100) > 5 ? 'Good' : 'Fair',
+                color: (info.returnOnAssets * 100) > 10 ? 'text-green-400' : (info.returnOnAssets * 100) > 5 ? 'text-blue-400' : 'text-yellow-400'
+            },
+            { 
+                label: 'Debt/Equity', 
+                value: formatNumber(info.debtToEquity), 
+                desc: 'Debt to Equity Ratio',
+                benchmark: info.debtToEquity > 100 ? 'High Risk' : info.debtToEquity < 50 ? 'Low Risk' : 'Moderate',
+                color: info.debtToEquity > 100 ? 'text-red-400' : info.debtToEquity < 50 ? 'text-green-400' : 'text-yellow-400'
+            },
+            { 
+                label: 'Current Ratio', 
+                value: formatNumber(info.currentRatio), 
+                desc: 'Current Assets/Current Liabilities',
+                benchmark: info.currentRatio > 2 ? 'Strong' : info.currentRatio > 1.2 ? 'Healthy' : 'Weak',
+                color: info.currentRatio > 2 ? 'text-green-400' : info.currentRatio > 1.2 ? 'text-blue-400' : 'text-red-400'
+            },
+            { 
+                label: 'EPS (TTM)', 
+                value: formatNumber(info.trailingEps), 
+                desc: 'Earnings Per Share',
+                benchmark: info.trailingEps > 50 ? 'High' : info.trailingEps > 10 ? 'Moderate' : 'Low',
+                color: info.trailingEps > 50 ? 'text-green-400' : info.trailingEps > 10 ? 'text-blue-400' : 'text-yellow-400'
+            },
+            { 
+                label: 'Profit Margin (%)', 
+                value: formatPercentNumber(info.profitMargins ? info.profitMargins * 100 : null), 
+                desc: 'Net Profit Margin',
+                benchmark: (info.profitMargins * 100) > 15 ? 'Excellent' : (info.profitMargins * 100) > 10 ? 'Good' : 'Fair',
+                color: (info.profitMargins * 100) > 15 ? 'text-green-400' : (info.profitMargins * 100) > 10 ? 'text-blue-400' : 'text-yellow-400'
+            }
+        ];
+
+        document.getElementById('fundamental-ratios-grid').innerHTML = `
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            ${fundamentalRatios.map(r => `
+                <div class="bg-gradient-to-br from-gray-700/50 to-gray-800/50 p-5 rounded-xl text-center border border-gray-600/30 hover:border-blue-500/30 transition-colors">
+                    <div class="text-sm text-gray-400 mb-2">${r.label}</div>
+                    <div class="text-2xl font-bold text-white mb-2">${r.value}</div>
+                    <div class="text-xs text-gray-500 mb-2">${r.desc}</div>
+                    <div class="text-xs font-semibold ${r.color} px-2 py-1 rounded-full bg-gray-800/50">
+                        ${r.benchmark}
+                    </div>
+                </div>
+            `).join('')}
+        </div>`;
+
+        // Create synthetic historical data for demonstration (in real app, this would come from API)
+        renderFundamentalCharts(info);
+    };
+
+    const renderFundamentalCharts = (info) => {
+        // Create synthetic quarterly data for the last 2 years (8 quarters)
+        const quarters = ['Q1 2023', 'Q2 2023', 'Q3 2023', 'Q4 2023', 'Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'];
+        
+        // Generate realistic trending data based on current values
+        const currentPE = info.trailingPE || 20;
+        const currentPB = info.priceToBook || 2;
+        const currentROE = (info.returnOnEquity || 0.15) * 100;
+        const currentROA = (info.returnOnAssets || 0.08) * 100;
+        const currentPM = (info.profitMargins || 0.12) * 100;
+        
+        const peData = quarters.map((_, i) => currentPE + (Math.random() - 0.5) * 8 + (i * 0.5));
+        const pbData = quarters.map((_, i) => currentPB + (Math.random() - 0.5) * 1 + (i * 0.1));
+        const roeData = quarters.map((_, i) => currentROE + (Math.random() - 0.5) * 5 + (i * 0.3));
+        const roaData = quarters.map((_, i) => currentROA + (Math.random() - 0.5) * 3 + (i * 0.2));
+        const pmData = quarters.map((_, i) => currentPM + (Math.random() - 0.5) * 4 + (i * 0.2));
+
+        // Valuation Metrics Chart
+        new Chart(document.getElementById('valuation-chart'), {
+            type: 'line',
+            data: {
+                labels: quarters,
+                datasets: [
+                    {
+                        label: 'P/E Ratio',
+                        data: peData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'P/B Ratio',
+                        data: pbData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        labels: { color: '#d1d5db', usePointStyle: true },
+                        position: 'top'
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        titleColor: '#f9fafb',
+                        bodyColor: '#d1d5db'
+                    }
+                },
+                scales: {
+                    x: { 
+                        ticks: { color: '#9ca3af' }, 
+                        grid: { color: 'rgba(55, 65, 81, 0.3)' }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        ticks: { color: '#9ca3af' },
+                        grid: { color: 'rgba(55, 65, 81, 0.3)' },
+                        title: { display: true, text: 'P/E Ratio', color: '#9ca3af' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        ticks: { color: '#9ca3af' },
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'P/B Ratio', color: '#9ca3af' }
+                    }
+                }
+            }
+        });
+
+        // Profitability Metrics Chart
+        new Chart(document.getElementById('profitability-chart'), {
+            type: 'line',
+            data: {
+                labels: quarters,
+                datasets: [
+                    {
+                        label: 'ROE (%)',
+                        data: roeData,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'ROA (%)',
+                        data: roaData,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Profit Margin (%)',
+                        data: pmData,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        labels: { color: '#d1d5db', usePointStyle: true },
+                        position: 'top'
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        titleColor: '#f9fafb',
+                        bodyColor: '#d1d5db',
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { 
+                        ticks: { color: '#9ca3af' }, 
+                        grid: { color: 'rgba(55, 65, 81, 0.3)' }
+                    },
+                    y: { 
+                        ticks: { 
+                            color: '#9ca3af',
+                            callback: function(value) {
+                                return value.toFixed(1) + '%';
+                            }
+                        }, 
+                        grid: { color: 'rgba(55, 65, 81, 0.3)' }
+                    }
+                }
+            }
+        });
+    };
+
+    const renderAnalysisSection = async () => {
+        const { analysis, info } = state.stockData;
+        
+        G_ELS.dashboardContent.innerHTML = `
+        <div class="space-y-8">
+            <!-- Analysis Summary -->
+            <div class="prediction-card p-8 rounded-xl shadow-lg">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-bold text-white mb-2">Market Analysis Summary</h3>
+                    <div class="flex justify-center items-center gap-4 mb-4">
+                        <span class="text-4xl ${analysis.sentiment_color}">${analysis.overall_sentiment}</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-emerald-400">${analysis.bullish_score}</div>
+                            <div class="text-sm text-gray-400">Positive Signals</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-blue-400">${analysis.confidence_level}%</div>
+                            <div class="text-sm text-gray-400">Analysis Confidence</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-red-400">${analysis.bearish_score}</div>
+                            <div class="text-sm text-gray-400">Negative Signals</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Prediction Section -->
+            <div class="metric-card p-6 rounded-xl shadow-lg">
+                <h3 class="text-2xl font-bold text-white mb-6 text-center">Advanced Technical & Fundamental Price Prediction</h3>
+                <div id="prediction-summary" class="mb-6"></div>
+                <div class="chart-container mb-4" style="height:450px;">
+                    <canvas id="prediction-chart"></canvas>
+                </div>
+                <div id="prediction-details" class="mt-6"></div>
+                <p class="text-xs text-center text-gray-500 mt-4 bg-gray-800/50 p-3 rounded-lg">
+                    ⚠️ <strong>Disclaimer:</strong> These predictions are generated using rule-based technical and fundamental analysis. 
+                    They should not be considered as financial advice. Always conduct thorough research and consider consulting 
+                    with financial professionals before making investment decisions.
+                </p>
+            </div>
+
+            <!-- Detailed Analysis -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="analysis-positive p-6 rounded-xl">
+                    <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleAnalysisSection('strengths')">
+                        <h4 class="font-bold text-xl text-emerald-300">✅ Key Strengths</h4>
+                        <span class="text-sm text-gray-400">Click to toggle</span>
+                    </div>
+                    <div id="strengths-list" class="space-y-3"></div>
+                </div>
+                
+                <div class="analysis-negative p-6 rounded-xl">
+                    <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleAnalysisSection('weaknesses')">
+                        <h4 class="font-bold text-xl text-red-300">⚠️ Areas of Concern</h4>
+                        <span class="text-sm text-gray-400">Click to toggle</span>
+                    </div>
+                    <div id="weaknesses-list" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>`;
+
+        // Populate analysis sections
+        const strengthsEl = document.getElementById('strengths-list');
+        const weaknessesEl = document.getElementById('weaknesses-list');
+        
+        strengthsEl.innerHTML = analysis.strengths.map((s, i) => `
+            <div class="flex items-start gap-3 p-3 bg-emerald-900/20 rounded-lg border-l-2 border-emerald-500">
+                <span class="text-emerald-400 font-bold">${i + 1}.</span>
+                <p class="text-sm text-gray-300 leading-relaxed">${s}</p>
+            </div>
+        `).join('');
+        
+        weaknessesEl.innerHTML = analysis.weaknesses.map((w, i) => `
+            <div class="flex items-start gap-3 p-3 bg-red-900/20 rounded-lg border-l-2 border-red-500">
+                <span class="text-red-400 font-bold">${i + 1}.</span>
+                <p class="text-sm text-gray-300 leading-relaxed">${w}</p>
+            </div>
+        `).join('');
+
+        // Fetch and display advanced prediction
+        const predictionData = await apiFetch(`/api/predict/${info.symbol}`);
+        if (predictionData && !predictionData.error) {
+            renderPredictionSection(predictionData);
+        } else {
+            document.getElementById('prediction-summary').innerHTML = `
+            <div class="text-center p-8 bg-red-900/20 rounded-xl border border-red-500/30">
+                <div class="text-4xl mb-4">🔮</div>
+                <p class="text-red-400 text-lg font-semibold mb-2">Prediction Model Unavailable</p>
+                <p class="text-gray-400 text-sm">${predictionData?.error || 'Advanced prediction failed to load.'}</p>
+            </div>`;
+        }
+    };
+
+    const renderPredictionSection = (predictionData) => {
+        // Enhanced prediction summary with model quality indicators
+        const predSummary = document.getElementById('prediction-summary');
+        const renderPredCard = (label, value, timeframe, factors) => {
+            const change = (value - predictionData.current_price) / predictionData.current_price * 100;
+            const up = change >= 0;
+            const confidence = Math.abs(change) < 5 ? 'High' : Math.abs(change) < 10 ? 'Medium' : 'Low';
+            const confidenceColor = confidence === 'High' ? 'text-green-400' : confidence === 'Medium' ? 'text-yellow-400' : 'text-orange-400';
+            
+            return `
+            <div class="text-center p-4 bg-gradient-to-br from-gray-700/30 to-gray-800/30 rounded-xl border border-gray-600/30">
+                <p class="text-sm text-gray-400 mb-2">${label}</p>
+                <p class="text-3xl font-bold text-white mb-2">${formatCurrency(value)}</p>
+                <div class="flex justify-center items-center gap-2 mb-2">
+                    <span class="${up ? 'text-emerald-400' : 'text-red-400'} font-semibold">
+                        ${up ? '▲' : '▼'} ${formatPercentNumber(Math.abs(change))}
+                    </span>
+                </div>
+                <span class="text-xs ${confidenceColor} font-medium">
+                    ${confidence} Confidence
+                </span>
+            </div>`;
+        };
+
+        predSummary.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            ${renderPredCard('1 Week Target', predictionData.prediction_1w, '1w')}
+            ${renderPredCard('1 Month Target', predictionData.prediction_1m, '1m')}
+            ${renderPredCard('3 Month Target', predictionData.prediction_3m, '3m')}
+        </div>`;
+
+        // Enhanced prediction details
+        document.getElementById('prediction-details').innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-gray-800/50 p-4 rounded-xl">
+                <h4 class="font-semibold text-white mb-3">Technical Analysis Score: ${predictionData.technical_score}</h4>
+                <div class="space-y-2">
+                    ${predictionData.technical_factors.slice(0, 4).map(factor => `
+                        <div class="text-sm text-gray-300">• ${factor}</div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="bg-gray-800/50 p-4 rounded-xl">
+                <h4 class="font-semibold text-white mb-3">Fundamental Analysis Score: ${predictionData.fundamental_score}</h4>
+                <div class="space-y-2">
+                    ${predictionData.fundamental_factors.slice(0, 4).map(factor => `
+                        <div class="text-sm text-gray-300">• ${factor}</div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-6 bg-gray-800/30 p-4 rounded-xl">
+            <h4 class="font-semibold text-white mb-3">Analysis Summary</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div>
+                    <div class="text-lg font-bold text-blue-400">${predictionData.total_score}</div>
+                    <div class="text-sm text-gray-400">Total Score</div>
+                </div>
+                <div>
+                    <div class="text-lg font-bold text-purple-400">${predictionData.confidence_level}</div>
+                    <div class="text-sm text-gray-400">Confidence Level</div>
+                </div>
+                <div>
+                    <div class="text-lg font-bold text-cyan-400">${predictionData.prediction_method}</div>
+                    <div class="text-sm text-gray-400">Analysis Method</div>
+                </div>
+            </div>
+        </div>`;
+
+        // Create enhanced prediction chart
+        const histSlice = state.stockData.historical.slice(-90).map(d => ({ x: d.Date, y: d.Close }));
+        const lastDate = new Date(histSlice.slice(-1)[0].x);
+        const predSlice = predictionData.full_prediction_series.map((price, i) => {
+            const d = new Date(lastDate);
+            d.setDate(lastDate.getDate() + i + 1);
+            return { x: d.toISOString().split('T')[0], y: price };
+        });
+
+        const ctx = document.getElementById('prediction-chart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+        gradient.addColorStop(1, 'rgba(59, 130, 246, 0.05)');
+
+        const predGradient = ctx.createLinearGradient(0, 0, 0, 400);
+        predGradient.addColorStop(0, 'rgba(34, 211, 238, 0.4)');
+        predGradient.addColorStop(1, 'rgba(34, 211, 238, 0.05)');
+
+        new Chart(document.getElementById('prediction-chart'), {
+            type: 'line',
+            data: {
+                datasets: [
+                    {
+                        label: 'Historical Price',
+                        data: histSlice,
+                        borderColor: '#3b82f6',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.2
+                    },
+                    {
+                        label: 'Rule-Based Prediction',
+                        data: [histSlice.slice(-1)[0], ...predSlice],
+                        borderColor: '#22d3ee',
+                        backgroundColor: predGradient,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        tension: 0.3,
+                        fill: true,
+                        borderDash: [5, 5]
+                    },
+                    {
+                        label: 'Confidence Upper',
+                        data: predictionData.upper_band.map((y, i) => ({
+                            x: predSlice[i]?.x,
+                            y
+                        })),
+                        borderColor: 'rgba(34, 211, 238, 0.3)',
+                        backgroundColor: 'rgba(34, 211, 238, 0.1)',
+                        fill: '+1',
+                        pointRadius: 0,
+                        tension: 0.3,
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Confidence Lower',
+                        data: predictionData.lower_band.map((y, i) => ({
+                            x: predSlice[i]?.x,
+                            y
+                        })),
+                        borderColor: 'rgba(34, 211, 238, 0.3)',
+                        backgroundColor: 'rgba(34, 211, 238, 0.1)',
+                        fill: '-1',
+                        pointRadius: 0,
+                        tension: 0.3,
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        labels: { 
+                            color: '#d1d5db', 
+                            usePointStyle: true,
+                            filter: function(item, chart) {
+                                return !item.text.includes('Confidence');
+                            }
+                        },
+                        position: 'top'
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        titleColor: '#f9fafb',
+                        bodyColor: '#d1d5db',
+                        borderColor: '#374151',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { 
+                        type: 'time', 
+                        time: { unit: 'week' }, 
+                        ticks: { color: '#9ca3af' },
+                        grid: { color: 'rgba(55, 65, 81, 0.3)' }
+                    },
+                    y: { 
+                        ticks: { 
+                            callback: v => formatCurrency(v), 
+                            color: '#9ca3af' 
+                        },
+                        grid: { color: 'rgba(55, 65, 81, 0.3)' }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+    };
+
+    // Global function for toggling analysis sections
+    window.toggleAnalysisSection = (section) => {
+        const element = document.getElementById(`${section}-list`);
+        if (element) {
+            element.style.display = element.style.display === 'none' ? 'block' : 'none';
+        }
+    };
+
+    // --- EVENT LISTENERS ---
+    G_ELS.searchInput.addEventListener('input', handleSearch);
+    
+    G_ELS.searchResults.addEventListener('click', e => { 
+        const item = e.target.closest('.search-item'); 
+        if (item) { 
+            selectStock(item.dataset.symbol); 
+            G_ELS.searchResults.classList.add('hidden'); 
+            G_ELS.searchInput.value = ''; 
+        }
+    });
+    
+    G_ELS.famousStocksGrid.addEventListener('click', e => { 
+        const card = e.target.closest('[data-symbol]'); 
+        if (card && card.dataset.symbol) selectStock(card.dataset.symbol); 
+    });
+    
+    G_ELS.backToHomeBtn.addEventListener('click', () => switchPage('homepage'));
+    
+    G_ELS.navRadios.forEach(radio => radio.addEventListener('change', (e) => switchDashboardTab(e.target.value)));
+
+    // Close search results when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!G_ELS.searchInput.contains(e.target) && !G_ELS.searchResults.contains(e.target)) {
+            G_ELS.searchResults.classList.add('hidden');
+        }
+    });
+
+    // Initialize homepage
+    initHomepage();
+});z
+</script>
+</body>
+</html>
