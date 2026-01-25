@@ -5,10 +5,12 @@ from flask import Flask, render_template, jsonify, request
 import warnings
 from datetime import timedelta, datetime
 import math
+from flask_cors import CORS
 
 warnings.filterwarnings("ignore")
 app = Flask(__name__)
 
+CORS(app)
 # --- DATA LOADING ---
 try:
     ticker_df = pd.read_csv('yfinance_supported_tickers.csv')

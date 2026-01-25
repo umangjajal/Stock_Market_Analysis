@@ -277,13 +277,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- API ---
     const apiFetch = async (url) => { 
         try { 
-            const r = await fetch(url); 
-            const d = await r.json(); 
-            if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`); 
-            return d; 
+            // Switches between Local and Railway based on where the browser is running
+            const baseUrl = window.location.hostname === 'localhost' ? '' : RAILWAY_URL;
+            const r = await fetch(`${baseUrl}${url}`); 
+            if (!r.ok) throw new Error(`HTTP ${r.status}`); 
+            return await r.json(); 
         } catch (e) { 
             console.error("API Error:", e); 
-            alert(`Failed to fetch data: ${e.message}`); 
             return null; 
         }
     };
@@ -300,7 +300,19 @@ document.addEventListener('DOMContentLoaded', () => {
         G_ELS.indicesGrid.innerHTML = d.indices.map(i => renderStockCard(i, 'index')).join('');
         G_ELS.famousStocksGrid.innerHTML = d.famous_stocks.map(s => renderStockCard(s, 'stock')).join('');
     };
-
+    
+    window.selectStock = async (symbol) => {
+        showLoading(true);
+        const data = await apiFetch(`/api/stock/${symbol}`);
+        if (data) {
+            state.stockData = data;
+            document.getElementById('company-name').textContent = data.info.longName;
+            document.getElementById('company-symbol').textContent = data.info.symbol;
+            switchPage('dashboard');
+            switchDashboardTab('overview');
+        }
+        showLoading(false);
+    };
     // Enhanced card rendering with better visual design
     const renderStockCard = (item, type) => {
         if (!item || item.price == null) return '';
@@ -1497,10 +1509,11 @@ document.addEventListener('DOMContentLoaded', () => {
             G_ELS.searchResults.classList.add('hidden');
         }
     });
-
+    
+    
     // Initialize homepage
     initHomepage();
-});z
+});
 </script>
 </body>
 </html>
