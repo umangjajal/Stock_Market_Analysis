@@ -2,26 +2,23 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 from flask import Flask, render_template, jsonify, request
+from flask_cors import CORS
 import warnings
 from datetime import timedelta, datetime
 import math
-from flask_cors import CORS
 
 warnings.filterwarnings("ignore")
 app = Flask(__name__)
-
 CORS(app)
+
 # --- DATA LOADING ---
 try:
     ticker_df = pd.read_csv('yfinance_supported_tickers.csv')
-    # adapt to different column names - using what user said earlier
-    # expected columns: SYMBOL, NAME OF COMPANY, Yahoo_Equivalent_Code
     rename_map = {}
     if 'NAME OF COMPANY' in ticker_df.columns:
         rename_map['NAME OF COMPANY'] = 'name'
     if 'SYMBOL' in ticker_df.columns:
         rename_map['SYMBOL'] = 'symbol'
-    # some users have 'Yahoo_Equivalent_Code' or 'YahooEquiv' etc.
     if 'Yahoo_Equivalent_Code' in ticker_df.columns:
         rename_map['Yahoo_Equivalent_Code'] = 'yfinance_symbol'
     if 'YahooEquiv' in ticker_df.columns:
@@ -75,21 +72,6 @@ def compute_stochastic(high, low, close, k_period=14, d_period=3):
     k_percent = 100 * ((close - lowest_low) / (highest_high - lowest_low))
     d_percent = k_percent.rolling(window=d_period).mean()
     return k_percent, d_percent
-
-def compute_williams_r(high, low, close, period=14):
-    """Calculate Williams %R"""
-    highest_high = high.rolling(window=period).max()
-    lowest_low = low.rolling(window=period).min()
-    wr = -100 * ((highest_high - close) / (highest_high - lowest_low))
-    return wr
-
-def compute_commodity_channel_index(high, low, close, period=20):
-    """Calculate Commodity Channel Index"""
-    tp = (high + low + close) / 3
-    sma_tp = tp.rolling(window=period).mean()
-    mad = tp.rolling(window=period).apply(lambda x: np.abs(x - x.mean()).mean())
-    cci = (tp - sma_tp) / (0.015 * mad)
-    return cci
 
 def get_automated_analysis(info, hist_df):
     """Enhanced automated analysis with comprehensive scoring system."""
@@ -226,7 +208,6 @@ def get_automated_analysis(info, hist_df):
             # Moving averages
             sma50 = hist_df['Close'].rolling(window=50).mean().iloc[-1]
             sma200 = hist_df['Close'].rolling(window=200).mean().iloc[-1]
-            sma20 = hist_df['Close'].rolling(window=20).mean().iloc[-1]
             current_price = hist_df['Close'].iloc[-1]
             
             # Price vs moving averages
@@ -342,7 +323,7 @@ def get_automated_analysis(info, hist_df):
     except Exception:
         pass
 
-    # Overall Sentiment Scoring with enhanced ranges
+    # Overall Sentiment Scoring
     net_score = bullish_score - bearish_score
     if net_score > 6:
         overall_sentiment = "🚀 Very Strongly Bullish"
@@ -423,6 +404,7 @@ def homepage_data():
                     price_info = data['Close'] if 'Close' in data else pd.Series()
                     if isinstance(price_info, pd.DataFrame) and ticker in price_info.columns:
                         price_info = price_info[ticker].dropna()
+                
                 if isinstance(price_info, pd.Series) and len(price_info) > 1:
                     price = float(price_info.iloc[-1])
                     change = float(price - price_info.iloc[-2])
